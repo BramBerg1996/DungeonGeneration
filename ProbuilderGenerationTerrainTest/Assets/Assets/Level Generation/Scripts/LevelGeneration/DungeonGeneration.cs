@@ -59,7 +59,7 @@ public class DungeonGeneration : MonoBehaviour
     void generatePath()
     {
         grid[startingX, startingZ].GetComponent<MeshRenderer>().material.color = Color.yellow;
-        //findDirection(startingX, startingZ, lastPos);
+        findDirection(startingX, startingZ, 0,0);
     }
 
 
@@ -142,7 +142,7 @@ public class DungeonGeneration : MonoBehaviour
             return;
         }
 
-        findDirection(x, z);
+        findDirection(x, z, lastX, lastZ);
     }
     float randomDirection()
     {
