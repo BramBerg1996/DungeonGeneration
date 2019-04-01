@@ -45,7 +45,6 @@ public class DungeonGeneration : MonoBehaviour
         //{
         //    nextUpdate = Mathf.FloorToInt(Time.time) + 0.5f;
 
-
         placePiece();
         //}
 
@@ -59,7 +58,6 @@ public class DungeonGeneration : MonoBehaviour
 
     void placePiece()
     {
-
         // blocked
         if (curDirection == 0) {
             print("--------BLOCKED--------" + "X: " + x + "Z: " + z);
@@ -90,7 +88,8 @@ public class DungeonGeneration : MonoBehaviour
         {
             generatingLevel = false;
             print("--------OUT OF BOUNDS--------" + "X: " + x + "Z: " + z);
-            return;
+            curDirection = 0;
+
         }
 
         // create part of dungeon
@@ -162,8 +161,7 @@ public class DungeonGeneration : MonoBehaviour
     bool mustPlaceCorner(int placeDirection) {
 
         if (placeDirection != 0) {
-            if (lastPos.x - getNextPos(curDirection).x == 2 || lastPos.x - getNextPos(curDirection).x == -2
-                && lastPos.z - getNextPos(curDirection).z == 2 || lastPos.z - getNextPos(curDirection).z == -2) {
+            if (lastPos.x != getNextPos(curDirection).x && lastPos.z != getNextPos(curDirection).z) {
                 return true;
             }
         }
@@ -189,6 +187,11 @@ public class DungeonGeneration : MonoBehaviour
         }
 
         return nextPos;
+    }
+
+    Quaternion getPieceRotation()
+    {
+        return new Quaternion();
     }
 }
 
