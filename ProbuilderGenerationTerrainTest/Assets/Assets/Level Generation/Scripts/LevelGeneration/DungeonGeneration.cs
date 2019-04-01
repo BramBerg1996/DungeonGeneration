@@ -17,6 +17,8 @@ public class DungeonGeneration : MonoBehaviour
     public GameObject CornerPiece;
     public GameObject StartEndPiece;
 
+    private Vector3 lastPos = Vector3.zero;
+
     bool generatingLevel = true;
 
     int curDirection = 0;
@@ -32,6 +34,9 @@ public class DungeonGeneration : MonoBehaviour
 
         x = Random.Range(0, xBounds);
         z = Random.Range(0, zBounds);
+
+        // create start position
+        createPart();
     }
 
     void Update()
@@ -39,6 +44,8 @@ public class DungeonGeneration : MonoBehaviour
         //if (Time.time >= nextUpdate && generatingLevel)
         //{
         //    nextUpdate = Mathf.FloorToInt(Time.time) + 0.5f;
+
+
         placePiece();
         //}
 
@@ -52,40 +59,32 @@ public class DungeonGeneration : MonoBehaviour
 
     void placePiece()
     {
-        // create part of dungeon
-        createPart();
-
-        //direction
-        int moveDirection = direction();
 
         // blocked
-        if (moveDirection == 0) {
+        if (curDirection == 0) {
             print("--------BLOCKED--------" + "X: " + x + "Z: " + z);
             generatingLevel = false;
         }
         // forward
-        if (moveDirection == 1)
+        if (curDirection == 1)
         {
             z++;
         }
         // right
-        if (moveDirection == 2)
+        if (curDirection == 2)
         {
             x++;
         }
         //left
-        if (moveDirection == 3)
+        if (curDirection == 3)
         {
             x--;
         }
-        //down
-        if (moveDirection == 4)
-        {
-            z--;
-        }
-
-        //for debugging and testing purposes
-        curDirection = moveDirection;
+        ////down
+        //if (curDirection == 4)
+        //{
+        //    z--;
+        //}
 
         if (outOfBounds())
         {
@@ -94,6 +93,8 @@ public class DungeonGeneration : MonoBehaviour
             return;
         }
 
+        // create part of dungeon
+        createPart();
     }
 
     // getting possible directions via this method and the blocked methode.
@@ -140,44 +141,54 @@ public class DungeonGeneration : MonoBehaviour
 
     void createPart()
     {
-        //print("created: X: " + x + "Z: " + z);
-        //print("current direction: " + curDirection);
+        int placeDirection = curDirection;
+        curDirection = direction();
+        // place end
+        if (placeDirection == 0)
+        {
+            Instantiate(StartEndPiece, new Vector3(x * PIECE_SIZE, 0, z * PIECE_SIZE), Quaternion.identity);
+        }
+        else if (mustPlaceCorner(placeDirection)) {
+            Instantiate(CornerPiece, new Vector3(x * PIECE_SIZE, 0, z * PIECE_SIZE), Quaternion.identity);
+        }
+        else {
+            Instantiate(CorridorPiece, new Vector3(x * PIECE_SIZE, 0, z * PIECE_SIZE), Quaternion.identity);
+        }
 
-        GameObject created = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        created.transform.position = new Vector3(x, 0, z);
         dungeonLayout[x, z] = 1;
+        lastPos = new Vector3(x, 0, z);
+    }
 
+    bool mustPlaceCorner(int placeDirection) {
 
-        //// start
-        //if (curDirection == 0)
-        //{
+        if (placeDirection != 0) {
+            if (lastPos.x - getNextPos(curDirection).x == 2 || lastPos.x - getNextPos(curDirection).x == -2
+                && lastPos.z - getNextPos(curDirection).z == 2 || lastPos.z - getNextPos(curDirection).z == -2) {
+                return true;
+            }
+        }
+        return false;
+    }
+    Vector3 getNextPos(int nextDir) {
+        Vector3 nextPos = new Vector3(x, 0, z);
 
-        //    created.GetComponent<MeshRenderer>().material.color = Color.red;
-        //}
-        //// forward
-        //if (curDirection == 1)
-        //{
+        // forward
+        if (curDirection == 1)
+        {
+            nextPos.z++;
+        }
+        // right
+        if (curDirection == 2)
+        {
+            nextPos.x++;
+        }
+        //left
+        if (curDirection == 3)
+        {
+            nextPos.x--;
+        }
 
-        //    created.GetComponent<MeshRenderer>().material.color = Color.black;
-        //}
-        //// right
-        //if (curDirection == 2)
-        //{
-
-        //    created.GetComponent<MeshRenderer>().material.color = Color.blue;
-        //}
-        //// left
-        //if (curDirection == 3)
-        //{
-
-        //    created.GetComponent<MeshRenderer>().material.color = Color.green;
-        //}
-        //// down
-        //if (curDirection == 4)
-        //{
-
-        //    created.GetComponent<MeshRenderer>().material.color = Color.yellow;
-        //}
+        return nextPos;
     }
 }
 
