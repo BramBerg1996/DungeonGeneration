@@ -4,148 +4,181 @@ using UnityEngine;
 
 public class DungeonGeneration : MonoBehaviour
 {
-    /*
-     * TIPS AND NOTES:
-     * 
-     * Default plane size: 10x10
-     * 
-     * */
+    public int xBounds, zBounds;
 
-    private Transform levelCollection;
-    private static int CHUNK_SIZE = 1;
-    private List<GameObject> chuckTypes;
-    private GameObject[,] grid;
+    private int[,] dungeonLayout;
 
-    public int WidthX, WidthZ;
+    private float nextUpdate = 0.5f;
 
-    private int startingX;
-    private int startingZ;
+    private static int PIECE_SIZE = 10;
+
+    private int x, z;
+    public GameObject CorridorPiece;
+    public GameObject CornerPiece;
+    public GameObject StartEndPiece;
+
+    bool generatingLevel = true;
+
+    int curDirection = 0;
 
     void Start()
     {
-        Initialize();
-
-        generateLevel();
-        generatePath();
-
-        Destroy(this.gameObject);
-    }
-
-    private void Initialize()
-    {
-        startingX = WidthX / 2;
-        startingZ = WidthZ / 2;
-
-        levelCollection = new GameObject().transform;
-        levelCollection.name = "Level";
-
-        grid = new GameObject[WidthX, WidthZ];
-    }
-
-    void generateLevel()
-    {
-        for (int x = 0; x < WidthX; x += CHUNK_SIZE)
+        if (xBounds == 0 || zBounds == 0)
         {
-            for (int z = 0; z < WidthZ; z += CHUNK_SIZE)
-            {
-                GameObject created = Instantiate(GameObject.CreatePrimitive(PrimitiveType.Cube), new Vector3(x, 0, z), Quaternion.identity);
-                created.AddComponent<PathNode>();
-                grid[x, z] = created;
-                created.transform.parent = levelCollection;
-            }
+            Debug.LogError("Bounds are not set properly");
+        }
+
+        dungeonLayout = new int[xBounds, zBounds];
+
+        x = Random.Range(0, xBounds);
+        z = Random.Range(0, zBounds);
+    }
+
+    void Update()
+    {
+        //if (Time.time >= nextUpdate && generatingLevel)
+        //{
+        //    nextUpdate = Mathf.FloorToInt(Time.time) + 0.5f;
+        placePiece();
+        //}
+
+        // if generation is done destroy self
+        if (!generatingLevel)
+        {
+            Destroy(gameObject);
         }
     }
 
-    void generatePath()
+
+    void placePiece()
     {
-        grid[startingX, startingZ].GetComponent<MeshRenderer>().material.color = Color.yellow;
-        findDirection(startingX, startingZ, 0,0);
-    }
+        // create part of dungeon
+        createPart();
 
+        //direction
+        int moveDirection = direction();
 
-
-    void findDirection(int x, int z, int lastX, int lastZ)
-    {
-        bool findingDirection = true;
-
-        bool triedLeft = false;
-        bool triedRight = false;
-        bool triedDown = false;
-        bool triedForward = false;
-
-
-        while (findingDirection)
+        // blocked
+        if (moveDirection == 0) {
+            print("--------BLOCKED--------" + "X: " + x + "Z: " + z);
+            generatingLevel = false;
+        }
+        // forward
+        if (moveDirection == 1)
         {
-            float direction = randomDirection();
-
-            //forward
-            if (direction == 1 && z + 1 < WidthZ)
-            {
-                GameObject piece = grid[x, z +1];
-                triedForward = true;
-                if (!piece.GetComponent<PathNode>().isPath)
-                {
-                    ++z;
-                    piece.GetComponent<MeshRenderer>().material.color = Color.red;
-                    piece.GetComponent<PathNode>().isPath = true;
-                    findingDirection = false;
-                }
-            }
-            //right
-            else if (direction == 2 && x + 1 < WidthX)
-            {
-                GameObject piece = grid[x + 1, z];
-                triedRight = true;
-                if (!piece.GetComponent<PathNode>().isPath)
-                {
-                    ++x;
-                    piece.GetComponent<MeshRenderer>().material.color = Color.blue;
-                    piece.GetComponent<PathNode>().isPath = true;
-                    findingDirection = false;
-                }
-            }
-            //left
-            else if (direction == 3 && x > 0)
-            {
-                GameObject piece = grid[x - 1, z];
-                triedLeft = true;
-                if (!piece.GetComponent<PathNode>().isPath)
-                {
-                    --x;
-                    piece.GetComponent<MeshRenderer>().material.color = Color.green;
-                    piece.GetComponent<PathNode>().isPath = true;
-                    findingDirection = false;
-                }
-            }
-            //down
-            else if (direction == 4 && z > 0)
-            {
-                GameObject piece = grid[x, z - 1];
-                triedDown = true;
-                if (!piece.GetComponent<PathNode>().isPath)
-                {
-                    --z;
-                    piece.GetComponent<MeshRenderer>().material.color = Color.black;
-                    piece.GetComponent<PathNode>().isPath = true;
-                    findingDirection = false;
-                }
-            }
-
-            if (triedDown && triedForward && triedLeft && triedRight) {
-                return;
-            }
+            z++;
+        }
+        // right
+        if (moveDirection == 2)
+        {
+            x++;
+        }
+        //left
+        if (moveDirection == 3)
+        {
+            x--;
+        }
+        //down
+        if (moveDirection == 4)
+        {
+            z--;
         }
 
-        //Check out of bounds
-        if ((z - 1) <= 0 || (x - 1) <= 0 || x + 1 > WidthX || z + 1 > WidthZ)
+        //for debugging and testing purposes
+        curDirection = moveDirection;
+
+        if (outOfBounds())
         {
+            generatingLevel = false;
+            print("--------OUT OF BOUNDS--------" + "X: " + x + "Z: " + z);
             return;
         }
 
-        findDirection(x, z, lastX, lastZ);
     }
-    float randomDirection()
+
+    // getting possible directions via this method and the blocked methode.
+    int direction()
     {
-        return Random.Range(1, 4);
+        List<int> possibleDirections = new List<int>();
+        print("created: X: " + x + "Z: " + z);
+        // can forward
+        if (z < zBounds - 1 && dungeonLayout[x, z + 1] == 0)
+        {
+            print("FORWARD");
+            possibleDirections.Add(1);
+        }
+        //// can back
+        //if (z - 1 > 0 && dungeonLayout[x, z - 1] == 0)
+        //{
+        //    possibleDirections.Add(4);
+        //}
+        // can right
+        if (x < xBounds + 1 && dungeonLayout[x + 1, z] == 0)
+        {
+            possibleDirections.Add(2);
+        }
+        // can left
+        if (x > 0 && dungeonLayout[x - 1, z] == 0)
+        {
+            possibleDirections.Add(3);
+        }
+
+        if (possibleDirections.Count > 0)
+        {
+            print("possible directions " + possibleDirections);
+            return possibleDirections[Random.Range(0, possibleDirections.Count)];
+        }
+
+        return 0;
+    }
+
+    //if out of bounds of the dungeon generation area return true;
+    bool outOfBounds()
+    {
+        return x == xBounds - 1 || z == zBounds - 1 || x < 0 || z < 0;
+    }
+
+    void createPart()
+    {
+        //print("created: X: " + x + "Z: " + z);
+        //print("current direction: " + curDirection);
+
+        GameObject created = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        created.transform.position = new Vector3(x, 0, z);
+        dungeonLayout[x, z] = 1;
+
+
+        //// start
+        //if (curDirection == 0)
+        //{
+
+        //    created.GetComponent<MeshRenderer>().material.color = Color.red;
+        //}
+        //// forward
+        //if (curDirection == 1)
+        //{
+
+        //    created.GetComponent<MeshRenderer>().material.color = Color.black;
+        //}
+        //// right
+        //if (curDirection == 2)
+        //{
+
+        //    created.GetComponent<MeshRenderer>().material.color = Color.blue;
+        //}
+        //// left
+        //if (curDirection == 3)
+        //{
+
+        //    created.GetComponent<MeshRenderer>().material.color = Color.green;
+        //}
+        //// down
+        //if (curDirection == 4)
+        //{
+
+        //    created.GetComponent<MeshRenderer>().material.color = Color.yellow;
+        //}
     }
 }
+
+
