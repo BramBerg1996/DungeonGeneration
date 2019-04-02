@@ -17,11 +17,20 @@ public class DungeonGeneration : MonoBehaviour
     public GameObject CornerPiece;
     public GameObject StartEndPiece;
 
+    public GameObject player;
+
+    private bool startPlaced = false;
+
     private Vector3 lastPos = Vector3.zero;
 
     bool generatingLevel = true;
 
-    int curDirection = 0;
+    int nextDirection = 0;
+    int prevDirection = 0;
+    GameObject lastPiece;
+
+
+    int currentRotation = 0;
 
     void Start()
     {
@@ -59,22 +68,23 @@ public class DungeonGeneration : MonoBehaviour
     void placePiece()
     {
         // blocked
-        if (curDirection == 0) {
+        if (nextDirection == 0)
+        {
             print("--------BLOCKED--------" + "X: " + x + "Z: " + z);
             generatingLevel = false;
         }
         // forward
-        if (curDirection == 1)
+        if (nextDirection == 1)
         {
             z++;
         }
         // right
-        if (curDirection == 2)
+        if (nextDirection == 2)
         {
             x++;
         }
         //left
-        if (curDirection == 3)
+        if (nextDirection == 3)
         {
             x--;
         }
@@ -88,7 +98,7 @@ public class DungeonGeneration : MonoBehaviour
         {
             generatingLevel = false;
             print("--------OUT OF BOUNDS--------" + "X: " + x + "Z: " + z);
-            curDirection = 0;
+            nextDirection = 0;
 
         }
 
@@ -113,7 +123,7 @@ public class DungeonGeneration : MonoBehaviour
         //    possibleDirections.Add(4);
         //}
         // can right
-        if (x < xBounds + 1 && dungeonLayout[x + 1, z] == 0)
+        if (x < xBounds - 1 && dungeonLayout[x + 1, z] == 0)
         {
             possibleDirections.Add(2);
         }
@@ -140,58 +150,158 @@ public class DungeonGeneration : MonoBehaviour
 
     void createPart()
     {
-        int placeDirection = curDirection;
-        curDirection = direction();
+        int placeDirection = nextDirection;
+        nextDirection = direction();
+
+        GameObject piece = null;
+
         // place end
         if (placeDirection == 0)
         {
-            Instantiate(StartEndPiece, new Vector3(x * PIECE_SIZE, 0, z * PIECE_SIZE), Quaternion.identity);
-        }
-        else if (mustPlaceCorner(placeDirection)) {
-            Instantiate(CornerPiece, new Vector3(x * PIECE_SIZE, 0, z * PIECE_SIZE), Quaternion.identity);
-        }
-        else {
-            Instantiate(CorridorPiece, new Vector3(x * PIECE_SIZE, 0, z * PIECE_SIZE), Quaternion.identity);
-        }
+            piece = Instantiate(StartEndPiece, new Vector3(x * PIECE_SIZE, 0, z * PIECE_SIZE), Quaternion.identity);
 
+            //spawning start
+            if (!startPlaced)
+            {
+                startPlaced = true;
+                //spawnPlayer(piece.transform.position);
+                if (nextDirection == 2)
+                {
+                    currentRotation = 180;
+                }
+                else if (nextDirection == 1)
+                {
+                    currentRotation = 90;
+                }
+                else if (nextDirection == 3)
+                {
+                    currentRotation = 0;
+                }
+
+            }
+            //spawning end
+            else
+            {
+                if (lastPiece.name == "corner") {
+                    if (lastPiece.transform.rotation.y >= 89 && lastPiece.transform.rotation.y <= 91)
+                    {
+                        currentRotation = 0;
+                    }
+                    else if (lastPiece.transform.rotation.y >= 179 && lastPiece.transform.rotation.y <= 181)
+                    {
+                        currentRotation = 180;
+                    }
+                    else
+                    {
+                        currentRotation = 270;
+                    }
+                }
+                else if (prevDirection == 2) {
+                    currentRotation = 0;
+                }
+                else if (prevDirection == 3)
+                {
+                    currentRotation = 180;
+                }
+                else
+                {
+                    currentRotation = 270;
+                }
+
+
+                //else if (nextDirection == 2)
+                //{
+                //    currentRotation = 0;
+                //}
+                //else if (nextDirection == 3)
+                //{
+                //    currentRotation = 180;
+                //}
+
+                print(lastPiece.name);
+            }   
+
+        }
+        else if (mustPlaceCorner(placeDirection))
+        {
+            piece = Instantiate(CornerPiece, new Vector3(x * PIECE_SIZE, 0, z * PIECE_SIZE), Quaternion.identity);
+            piece.name = "corner";
+
+            if (placeDirection == 1 && nextDirection == 2)
+            {
+                currentRotation = 90;
+            }
+            if (placeDirection == 1 && nextDirection == 3)
+            {
+                currentRotation = 180;
+            }
+
+            if (placeDirection == 2 && nextDirection == 1)
+            {
+                currentRotation = 270;
+            }
+            if (placeDirection == 3 && nextDirection == 1)
+            {
+                currentRotation = 0;
+            }
+        }
+        else
+        {
+
+            piece = Instantiate(CorridorPiece, new Vector3(x * PIECE_SIZE, 0, z * PIECE_SIZE), Quaternion.identity);
+            if (placeDirection == 2 || placeDirection == 3)
+            {
+                currentRotation = 0;
+            }
+            else
+            {
+                currentRotation = 90;
+            }
+        }
+        piece.transform.Rotate(0, currentRotation, 0);
         dungeonLayout[x, z] = 1;
         lastPos = new Vector3(x, 0, z);
+        prevDirection = placeDirection;
+        lastPiece = piece;
+
     }
 
-    bool mustPlaceCorner(int placeDirection) {
+    bool mustPlaceCorner(int placeDirection)
+    {
 
-        if (placeDirection != 0) {
-            if (lastPos.x != getNextPos(curDirection).x && lastPos.z != getNextPos(curDirection).z) {
+        if (placeDirection != 0)
+        {
+            if (lastPos.x != getNextPos(nextDirection).x && lastPos.z != getNextPos(nextDirection).z)
+            {
                 return true;
             }
         }
         return false;
     }
-    Vector3 getNextPos(int nextDir) {
+    Vector3 getNextPos(int nextDir)
+    {
         Vector3 nextPos = new Vector3(x, 0, z);
 
         // forward
-        if (curDirection == 1)
+        if (nextDirection == 1)
         {
             nextPos.z++;
         }
         // right
-        if (curDirection == 2)
+        if (nextDirection == 2)
         {
             nextPos.x++;
         }
         //left
-        if (curDirection == 3)
+        if (nextDirection == 3)
         {
             nextPos.x--;
         }
-
         return nextPos;
     }
 
-    Quaternion getPieceRotation()
-    {
-        return new Quaternion();
+    void spawnPlayer(Vector3 pos) {
+        Instantiate(player, pos, Quaternion.identity);
     }
 }
 
