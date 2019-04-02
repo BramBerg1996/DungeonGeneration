@@ -5,32 +5,32 @@ using UnityEngine;
 public class DungeonGeneration : MonoBehaviour
 {
     public int xBounds, zBounds;
+    public int ForwardChance;
+    public int BackwardChance;
+    public int LeftChance;
+    public int RightChance;
 
-    private int[,] dungeonLayout;
-
-    private float nextUpdate = 0.5f;
-
-    private static int PIECE_SIZE = 10;
-
-    private int x, z;
     public GameObject CorridorPiece;
     public GameObject CornerPiece;
     public GameObject StartEndPiece;
-
     public GameObject player;
 
-    private bool startPlaced = false;
+    private static int PIECE_SIZE = 10;
 
+    private int[,] dungeonLayout;
+
+    private int x, z;
+    private Directions nextDirection = Directions.NONE;
+    private Directions prevDirection = 0;
+
+    private int currentRotation = 0;
+    private GameObject lastPiece;
     private Vector3 lastPos = Vector3.zero;
 
-    bool generatingLevel = true;
+    private bool generatingLevel = true;
+    private bool startPlaced = false;
 
-    int nextDirection = 0;
-    int prevDirection = 0;
-    GameObject lastPiece;
-
-
-    int currentRotation = 0;
+    private enum Directions { NONE, FORWARD, RIGHT, LEFT, DOWN, BLOCKED};
 
     void Start()
     {
@@ -39,23 +39,25 @@ public class DungeonGeneration : MonoBehaviour
             Debug.LogError("Bounds are not set properly");
         }
 
+        if (ForwardChance + BackwardChance + LeftChance + RightChance != 100)
+        {
+            Debug.LogError("Total chance not 100% " + (ForwardChance + BackwardChance + LeftChance + RightChance));//change to end game.
+        }
+
         dungeonLayout = new int[xBounds, zBounds];
 
         x = Random.Range(0, xBounds);
-        z = Random.Range(0, zBounds);
+        z = Random.Range(0, zBounds / 2);
 
         // create start position
         createPart();
+
     }
 
     void Update()
     {
-        //if (Time.time >= nextUpdate && generatingLevel)
-        //{
-        //    nextUpdate = Mathf.FloorToInt(Time.time) + 0.5f;
-
-        placePiece();
-        //}
+        //generate piece of the dungeon every update
+        generateDungeon();
 
         // if generation is done destroy self
         if (!generatingLevel)
@@ -64,82 +66,122 @@ public class DungeonGeneration : MonoBehaviour
         }
     }
 
-
-    void placePiece()
+    void generateDungeon()
     {
-        // blocked
-        if (nextDirection == 0)
-        {
-            print("--------BLOCKED--------" + "X: " + x + "Z: " + z);
-            generatingLevel = false;
-        }
-        // forward
-        if (nextDirection == 1)
-        {
-            z++;
-        }
-        // right
-        if (nextDirection == 2)
-        {
-            x++;
-        }
-        //left
-        if (nextDirection == 3)
-        {
-            x--;
-        }
-        ////down
-        //if (curDirection == 4)
-        //{
-        //    z--;
-        //}
-
-        if (outOfBounds())
-        {
-            generatingLevel = false;
-            print("--------OUT OF BOUNDS--------" + "X: " + x + "Z: " + z);
-            nextDirection = 0;
-
-        }
+        generateNewPosition();
 
         // create part of dungeon
         createPart();
     }
 
-    // getting possible directions via this method and the blocked methode.
-    int direction()
+    void generateNewPosition()
     {
-        List<int> possibleDirections = new List<int>();
-        print("created: X: " + x + "Z: " + z);
+        switch (nextDirection)
+        {
+            case Directions.BLOCKED:
+                print("--------BLOCKED--------" + "X: " + x + "Z: " + z);
+                generatingLevel = false;
+                break;
+            case Directions.FORWARD:
+                z++;
+                break;
+            case Directions.RIGHT:
+                x++;
+                break;
+            case Directions.LEFT:
+                x--;
+                break;
+            case Directions.DOWN:
+                z--; ;
+                break;
+            default:
+                break;
+        }
+
+        if (outOfBounds())
+        {
+            generatingLevel = false;
+            print("--------OUT OF BOUNDS--------" + "X: " + x + "Z: " + z);
+            nextDirection = Directions.NONE;
+        }
+    }
+
+    private Directions GetChanceBasedDirections()
+    {
+        int chance = Random.Range(0, 101);
+        //forward
+        if (chance >= 0 && chance <= ForwardChance)
+        {
+            return Directions.FORWARD;
+        }
+        //back
+        if (chance >= ForwardChance && chance <= ForwardChance + BackwardChance)
+        {
+            return Directions.DOWN;
+        }
+        //right
+        if (chance >= ForwardChance + BackwardChance && chance <= ForwardChance + BackwardChance + RightChance)
+        {
+            return Directions.RIGHT;
+        }
+        //left
+        if (chance >= ForwardChance + BackwardChance + RightChance && chance <= 100)
+        {
+            return Directions.LEFT;
+        }
+        return Directions.BLOCKED;
+    }
+
+
+    // getting possible directions via this method and the blocked methode.
+    Directions getNextDirection()
+    {
+        Directions dir = GetChanceBasedDirections();
+        bool notBlocked = false;
+
+
         // can forward
         if (z < zBounds - 1 && dungeonLayout[x, z + 1] == 0)
         {
-            print("FORWARD");
-            possibleDirections.Add(1);
+            if (dir == Directions.FORWARD)
+            {
+                return Directions.FORWARD;
+            }
+            notBlocked = true;
         }
-        //// can back
-        //if (z - 1 > 0 && dungeonLayout[x, z - 1] == 0)
-        //{
-        //    possibleDirections.Add(4);
-        //}
+        // can back
+        if (z - 1 > 0 && dungeonLayout[x, z - 1] == 0)
+        {
+            if (dir == Directions.DOWN)
+            {
+                return Directions.DOWN;
+            }
+            notBlocked = true;
+        }
         // can right
         if (x < xBounds - 1 && dungeonLayout[x + 1, z] == 0)
         {
-            possibleDirections.Add(2);
+            if (dir == Directions.RIGHT)
+            {
+                return Directions.RIGHT;
+            }
+            notBlocked = true;
         }
         // can left
         if (x > 0 && dungeonLayout[x - 1, z] == 0)
         {
-            possibleDirections.Add(3);
+            if (dir == Directions.LEFT)
+            {
+                return Directions.LEFT;
+            }
+            notBlocked = true;
         }
 
-        if (possibleDirections.Count > 0)
-        {
-            print("possible directions " + possibleDirections);
-            return possibleDirections[Random.Range(0, possibleDirections.Count)];
+        if (notBlocked) {
+            return getNextDirection();
         }
 
-        return 0;
+        return Directions.BLOCKED;
     }
 
     //if out of bounds of the dungeon generation area return true;
@@ -150,39 +192,50 @@ public class DungeonGeneration : MonoBehaviour
 
     void createPart()
     {
-        int placeDirection = nextDirection;
-        nextDirection = direction();
+        Directions placeDirection = nextDirection;
+        nextDirection = getNextDirection();
 
         GameObject piece = null;
 
+
+        //if (placeDirection == Directions.BLOCKED)
+        //{
+        //    Destroy(lastPiece);
+        //    placeDirection = Directions.NONE;
+        //}
+
         // place end
-        if (placeDirection == 0)
+        if (placeDirection == Directions.NONE || placeDirection == Directions.BLOCKED)
         {
             piece = Instantiate(StartEndPiece, new Vector3(x * PIECE_SIZE, 0, z * PIECE_SIZE), Quaternion.identity);
-
             //spawning start
             if (!startPlaced)
             {
                 startPlaced = true;
                 //spawnPlayer(piece.transform.position);
-                if (nextDirection == 2)
+                if (nextDirection == Directions.RIGHT)
                 {
                     currentRotation = 180;
                 }
-                else if (nextDirection == 1)
+                else if (nextDirection == Directions.FORWARD)
                 {
                     currentRotation = 90;
                 }
-                else if (nextDirection == 3)
+                else if (nextDirection == Directions.LEFT)
                 {
                     currentRotation = 0;
+                }
+                else if (nextDirection == Directions.DOWN)
+                {
+                    currentRotation = 270;
                 }
 
             }
             //spawning end
             else
             {
-                if (lastPiece.name == "corner") {
+                if (lastPiece.name == "corner")
+                {
                     if (lastPiece.transform.rotation.y >= 89 && lastPiece.transform.rotation.y <= 91)
                     {
                         currentRotation = 0;
@@ -196,10 +249,11 @@ public class DungeonGeneration : MonoBehaviour
                         currentRotation = 270;
                     }
                 }
-                else if (prevDirection == 2) {
+                else if (prevDirection == Directions.RIGHT)
+                {
                     currentRotation = 0;
                 }
-                else if (prevDirection == 3)
+                else if (prevDirection == Directions.LEFT)
                 {
                     currentRotation = 180;
                 }
@@ -207,19 +261,7 @@ public class DungeonGeneration : MonoBehaviour
                 {
                     currentRotation = 270;
                 }
-
-
-                //else if (nextDirection == 2)
-                //{
-                //    currentRotation = 0;
-                //}
-                //else if (nextDirection == 3)
-                //{
-                //    currentRotation = 180;
-                //}
-
-                print(lastPiece.name);
-            }   
+            }
 
         }
         else if (mustPlaceCorner(placeDirection))
@@ -227,29 +269,32 @@ public class DungeonGeneration : MonoBehaviour
             piece = Instantiate(CornerPiece, new Vector3(x * PIECE_SIZE, 0, z * PIECE_SIZE), Quaternion.identity);
             piece.name = "corner";
 
-            if (placeDirection == 1 && nextDirection == 2)
+            if (placeDirection == Directions.FORWARD && nextDirection == Directions.RIGHT ||
+                placeDirection == Directions.LEFT && nextDirection == Directions.DOWN)
             {
                 currentRotation = 90;
             }
-            if (placeDirection == 1 && nextDirection == 3)
+            if (placeDirection == Directions.FORWARD && nextDirection == Directions.LEFT ||
+               placeDirection == Directions.RIGHT && nextDirection == Directions.DOWN)
             {
                 currentRotation = 180;
             }
 
-            if (placeDirection == 2 && nextDirection == 1)
+            if (placeDirection == Directions.RIGHT && nextDirection == Directions.FORWARD ||
+                placeDirection == Directions.DOWN && nextDirection == Directions.LEFT)
             {
                 currentRotation = 270;
             }
-            if (placeDirection == 3 && nextDirection == 1)
+            if (placeDirection == Directions.LEFT && nextDirection == Directions.FORWARD ||
+                placeDirection == Directions.DOWN && nextDirection == Directions.RIGHT)
             {
                 currentRotation = 0;
             }
         }
         else
         {
-
             piece = Instantiate(CorridorPiece, new Vector3(x * PIECE_SIZE, 0, z * PIECE_SIZE), Quaternion.identity);
-            if (placeDirection == 2 || placeDirection == 3)
+            if (placeDirection == Directions.RIGHT || placeDirection == Directions.LEFT)
             {
                 currentRotation = 0;
             }
@@ -262,14 +307,21 @@ public class DungeonGeneration : MonoBehaviour
         dungeonLayout[x, z] = 1;
         lastPos = new Vector3(x, 0, z);
         prevDirection = placeDirection;
+
+        if (placeDirection == Directions.BLOCKED)
+        {
+            Destroy(lastPiece);
+            placeDirection = Directions.NONE;
+        }
+
         lastPiece = piece;
 
     }
 
-    bool mustPlaceCorner(int placeDirection)
+    bool mustPlaceCorner(Directions placeDirection)
     {
 
-        if (placeDirection != 0)
+        if (placeDirection != Directions.NONE)
         {
             if (lastPos.x != getNextPos(nextDirection).x && lastPos.z != getNextPos(nextDirection).z)
             {
@@ -278,29 +330,36 @@ public class DungeonGeneration : MonoBehaviour
         }
         return false;
     }
-    Vector3 getNextPos(int nextDir)
+    Vector3 getNextPos(Directions nextDir)
     {
         Vector3 nextPos = new Vector3(x, 0, z);
 
         // forward
-        if (nextDirection == 1)
+        if (nextDirection == Directions.FORWARD)
         {
             nextPos.z++;
         }
         // right
-        if (nextDirection == 2)
+        if (nextDirection == Directions.RIGHT)
         {
             nextPos.x++;
         }
         //left
-        if (nextDirection == 3)
+        if (nextDirection == Directions.LEFT)
         {
             nextPos.x--;
         }
+        //down
+        if (nextDirection == Directions.DOWN)
+        {
+            nextPos.z--;
+        }
+
         return nextPos;
     }
 
-    void spawnPlayer(Vector3 pos) {
+    void spawnPlayer(Vector3 pos)
+    {
         Instantiate(player, pos, Quaternion.identity);
     }
 }

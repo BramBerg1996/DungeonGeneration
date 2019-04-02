@@ -143,12 +143,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   xBounds: 100
   zBounds: 100
+  ForwardChance: 40
+  BackwardChance: 20
+  LeftChance: 20
+  RightChance: 20
   CorridorPiece: {fileID: 6012943875782894380, guid: 6e085910f29ace643b1e94562922b497,
     type: 3}
   CornerPiece: {fileID: 6012943875782894380, guid: 03d8154cca26e824ab200dc03e53fb3a,
     type: 3}
   StartEndPiece: {fileID: 6012943875782894380, guid: 7ee4f7438b007af458d822705677ad06,
     type: 3}
+  player: {fileID: 100000, guid: 5e9e851c0e142814dac026a256ba2ac0, type: 3}
 --- !u!4 &790396742
 Transform:
   m_ObjectHideFlags: 0
