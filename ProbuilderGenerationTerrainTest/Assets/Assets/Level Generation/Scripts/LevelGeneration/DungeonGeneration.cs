@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Tracing;
 using UnityEditor;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
 
@@ -22,10 +24,11 @@ public class DungeonGeneration : MonoBehaviour
     public int UpChance;
     public int DownChance;
 
-    public bool UseSeed = false;
+    public bool UseSeed;
     public int seed;
 
-    public int AmoutOfSteps = 0;
+    public bool setStepAmount;
+    public int AmoutOfSteps;
 
     public GameObject CorridorPiece;
     public GameObject CornerPiece;
@@ -40,23 +43,52 @@ public class DungeonGeneration : MonoBehaviour
     private GameObject parent;
 
     private int x, z, y;
-    private Directions nextDirection = Directions.NONE;
-    private Directions prevDirection = 0;
+    private Directions nextDirection;
+    private Directions prevDirection;
 
-    private int currentRotation = 0;
+    private int currentRotation;
     private GameObject lastPiece;
-    private Vector3 lastPos = Vector3.zero;
+    private Vector3 lastPos;
     private int chance;
 
-    private int counter = 0;
+    private int counter;
 
-    private bool generatingLevel = true;
-    private bool startPlaced = false;
+    private bool generatingLevel;
+    private bool startPlaced;
 
     private enum Directions { NONE, FORWARD, RIGHT, LEFT, BACK, BLOCKED, UP, DOWN, };
 
+    private List<GameObject> Dungeon = new List<GameObject>();
+
+    public void Reload()
+    {
+        foreach (var piece in Dungeon)
+        {
+            Destroy(piece);
+        }
+        Start();
+    }
+
+    private void init()
+    {
+        Destroy(parent);
+        startPlaced = false;
+        counter = 0;
+        currentRotation = 0;
+        Directions prevDirection = 0;
+        nextDirection = Directions.NONE;
+        lastPos = Vector3.zero;
+        generatingLevel = true;
+        Dungeon.Clear();
+        if (setStepAmount && AmoutOfSteps < 1)
+        {
+            AmoutOfSteps = 1;
+        }
+    }
+
     void Start()
     {
+        init();
         if (xBounds == 0 || zBounds == 0)
         {
             Debug.LogError("Bounds are not set properly");
@@ -82,14 +114,9 @@ public class DungeonGeneration : MonoBehaviour
             Random.InitState(seed);
         }
 
-        if (AmoutOfSteps == 0)
-        {
-            AmoutOfSteps = int.MaxValue;
-        }
-
-        x = Random.Range(0, xBounds);
-        z = Random.Range(0, zBounds / 2);
-        y = Random.Range(0, yBounds);
+        x = Random.Range(xBounds/3, xBounds/3*2);
+        z = Random.Range(zBounds/3, zBounds/3*2);
+        y = Random.Range(yBounds/3, yBounds/3*2);
 
         // create start position
         createPart();
@@ -153,8 +180,9 @@ public class DungeonGeneration : MonoBehaviour
 
     private Directions GetChanceBasedDirections()
     {
-        if (counter < AmoutOfSteps)
+        if (!setStepAmount || counter < AmoutOfSteps)
         {
+            print("Count: "+ counter + " | Amount of: " + AmoutOfSteps+ " | SetAmount: "+!setStepAmount);
             chance = Random.Range(1, 101);
             //forward
             if (chance >= 0 && chance <= ForwardChance)
@@ -330,7 +358,7 @@ public class DungeonGeneration : MonoBehaviour
                 {
                     currentRotation = 270;
                 }
-                spawnPlayer(piece.transform.position + new Vector3(0, 10, 0));
+                //spawnPlayer(piece.transform.position + new Vector3(0, 3, 0));
             }
             //spawning end
             else
@@ -490,7 +518,7 @@ public class DungeonGeneration : MonoBehaviour
             placeDirection = Directions.NONE;
         }
         piece.transform.parent = parent.transform;
-
+        Dungeon.Add(piece);
         lastPiece = piece;
         counter++;
     }
@@ -554,35 +582,58 @@ public class DungeonGeneration : MonoBehaviour
 [CustomEditor(typeof(DungeonGeneration))]
 public class DungeonGenerationEditor : Editor
 {
+    private bool chanceFold;
+    private bool objectsFold;
+
     public override void OnInspectorGUI()
     {
         var dg = target as DungeonGeneration;
-        dg.UseSeed = GUILayout.Toggle(dg.UseSeed, "Use Seed");
-
-        if (dg.UseSeed)
-        {
-            dg.seed = EditorGUILayout.IntField("Seed", dg.seed);
-        }
 
         dg.xBounds = EditorGUILayout.IntField("X Boundary", dg.xBounds);
         dg.yBounds = EditorGUILayout.IntField("Y Boundary", dg.yBounds);
         dg.zBounds = EditorGUILayout.IntField("Z Boundary", dg.zBounds);
 
-        dg.ForwardChance = EditorGUILayout.IntField("Forward Chance", dg.ForwardChance);
-        dg.BackwardChance = EditorGUILayout.IntField("Backward Chance", dg.BackwardChance);
-        dg.LeftChance = EditorGUILayout.IntField("Left Chance", dg.LeftChance);
-        dg.RightChance = EditorGUILayout.IntField("Right Chance", dg.RightChance);
-        dg.DownChance = EditorGUILayout.IntField("Down Chance", dg.DownChance);
-        dg.UpChance = EditorGUILayout.IntField("Up Chance", dg.UpChance);
+        EditorGUILayout.Space();
 
+        dg.UseSeed = EditorGUILayout.Toggle("Use Seed", dg.UseSeed);
 
-        dg.AmoutOfSteps = EditorGUILayout.IntField("Amount of Steps", dg.AmoutOfSteps);
+        if (dg.UseSeed)
+        {
+            dg.seed = EditorGUILayout.IntField("Seed", dg.seed);
+        }
+        EditorGUILayout.Space();
 
-        dg.CorridorPiece = (GameObject)EditorGUILayout.ObjectField(dg.CorridorPiece, typeof(Object), true);
-        dg.CornerPiece = (GameObject)EditorGUILayout.ObjectField(dg.CornerPiece, typeof(Object), true);
-        dg.StartEndPiece = (GameObject)EditorGUILayout.ObjectField(dg.StartEndPiece, typeof(Object), true);
-        dg.UpPiece = (GameObject)EditorGUILayout.ObjectField(dg.UpPiece, typeof(Object), true);
-        dg.DownPiece = (GameObject)EditorGUILayout.ObjectField(dg.DownPiece, typeof(Object), true);
-        dg.player = (GameObject)EditorGUILayout.ObjectField(dg.player, typeof(Object), true);
+        dg.setStepAmount = EditorGUILayout.Toggle("Set step amount", dg.setStepAmount);
+        if(dg.setStepAmount) dg.AmoutOfSteps = EditorGUILayout.IntField("Amount of Steps", dg.AmoutOfSteps);
+
+        EditorGUILayout.Space();
+        chanceFold = EditorGUILayout.Foldout(chanceFold, "Chances for pieces");
+        if (chanceFold)
+        {
+            dg.ForwardChance = EditorGUILayout.IntField("Forward Chance", dg.ForwardChance);
+            dg.BackwardChance = EditorGUILayout.IntField("Backward Chance", dg.BackwardChance);
+            dg.LeftChance = EditorGUILayout.IntField("Left Chance", dg.LeftChance);
+            dg.RightChance = EditorGUILayout.IntField("Right Chance", dg.RightChance);
+            dg.DownChance = EditorGUILayout.IntField("Down Chance", dg.DownChance);
+            dg.UpChance = EditorGUILayout.IntField("Up Chance", dg.UpChance);
+        }
+
+        EditorGUILayout.Space();
+        objectsFold = EditorGUILayout.Foldout(objectsFold, "Pieces");
+        if (objectsFold)
+        {
+            dg.CorridorPiece = (GameObject) EditorGUILayout.ObjectField("Corridor Piece", dg.CorridorPiece, typeof(Object), true);
+            dg.CornerPiece = (GameObject) EditorGUILayout.ObjectField("Corner Piece", dg.CornerPiece, typeof(Object), true);
+            dg.StartEndPiece = (GameObject) EditorGUILayout.ObjectField("Start/End Piece", dg.StartEndPiece, typeof(Object), true);
+            dg.UpPiece = (GameObject) EditorGUILayout.ObjectField("Up Piece", dg.UpPiece, typeof(Object), true);
+            dg.DownPiece = (GameObject) EditorGUILayout.ObjectField("Down Piece", dg.DownPiece, typeof(Object), true);
+            dg.player = (GameObject) EditorGUILayout.ObjectField("Player", dg.player, typeof(Object), true);
+        }
+
+        EditorGUILayout.Space();
+        if (GUILayout.Button("Reload"))
+        {
+            dg.Reload();
+        }
     }
 }
