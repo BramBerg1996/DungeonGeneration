@@ -26,6 +26,7 @@ public class DungeonGeneration : MonoBehaviour
     private int currentRotation = 0;
     private GameObject lastPiece;
     private Vector3 lastPos = Vector3.zero;
+    private int chance;
 
     private bool generatingLevel = true;
     private bool startPlaced = false;
@@ -108,7 +109,7 @@ public class DungeonGeneration : MonoBehaviour
 
     private Directions GetChanceBasedDirections()
     {
-        int chance = Random.Range(0, 101);
+        chance = Random.Range(0, 101);
         //forward
         if (chance >= 0 && chance <= ForwardChance)
         {
@@ -146,8 +147,10 @@ public class DungeonGeneration : MonoBehaviour
             if (dir == Directions.FORWARD)
             {
                 return Directions.FORWARD;
+            }else if (ForwardChance > 0)
+            {
+                notBlocked = true;
             }
-            notBlocked = true;
         }
         // can back
         if (z - 1 > 0 && dungeonLayout[x, z - 1] == 0)
@@ -156,7 +159,10 @@ public class DungeonGeneration : MonoBehaviour
             {
                 return Directions.DOWN;
             }
-            notBlocked = true;
+            else if (BackwardChance > 0)
+            {
+                notBlocked = true;
+            }
         }
         // can right
         if (x < xBounds - 1 && dungeonLayout[x + 1, z] == 0)
@@ -165,7 +171,10 @@ public class DungeonGeneration : MonoBehaviour
             {
                 return Directions.RIGHT;
             }
-            notBlocked = true;
+            else if (RightChance > 0)
+            {
+                notBlocked = true;
+            }
         }
         // can left
         if (x > 0 && dungeonLayout[x - 1, z] == 0)
@@ -173,8 +182,10 @@ public class DungeonGeneration : MonoBehaviour
             if (dir == Directions.LEFT)
             {
                 return Directions.LEFT;
+            }else if (LeftChance > 0)
+            {
+                notBlocked = true;
             }
-            notBlocked = true;
         }
 
         if (notBlocked) {
@@ -244,6 +255,10 @@ public class DungeonGeneration : MonoBehaviour
                     {
                         currentRotation = 180;
                     }
+                    else if (lastPiece.transform.rotation.y >= -1 && lastPiece.transform.rotation.y <= 1)
+                    {
+                        currentRotation = 0;
+                    }
                     else
                     {
                         currentRotation = 270;
@@ -257,6 +272,10 @@ public class DungeonGeneration : MonoBehaviour
                 {
                     currentRotation = 180;
                 }
+                else if (prevDirection == Directions.DOWN)
+                {
+                    currentRotation = 90;
+                }
                 else
                 {
                     currentRotation = 270;
@@ -268,6 +287,7 @@ public class DungeonGeneration : MonoBehaviour
         {
             piece = Instantiate(CornerPiece, new Vector3(x * PIECE_SIZE, 0, z * PIECE_SIZE), Quaternion.identity);
             piece.name = "corner";
+            print("CORNER- RANDNUM: "+ chance);
 
             if (placeDirection == Directions.FORWARD && nextDirection == Directions.RIGHT ||
                 placeDirection == Directions.LEFT && nextDirection == Directions.DOWN)
