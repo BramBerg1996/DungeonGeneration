@@ -1,15 +1,23 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.Tracing;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class DungeonGeneration : MonoBehaviour
 {
     public int xBounds, zBounds;
+
     public int ForwardChance;
     public int BackwardChance;
     public int LeftChance;
     public int RightChance;
+
+    public bool UseSeed = false;
     public int seed;
+
+    public int AmoutOfSteps = 0;
 
     public GameObject CorridorPiece;
     public GameObject CornerPiece;
@@ -30,10 +38,12 @@ public class DungeonGeneration : MonoBehaviour
     private Vector3 lastPos = Vector3.zero;
     private int chance;
 
+    private int counter = 0;
+
     private bool generatingLevel = true;
     private bool startPlaced = false;
 
-    private enum Directions { NONE, FORWARD, RIGHT, LEFT, DOWN, BLOCKED};
+    private enum Directions { NONE, FORWARD, RIGHT, LEFT, BACK, BLOCKED, UP, DOWN,};
 
     void Start()
     {
@@ -52,7 +62,20 @@ public class DungeonGeneration : MonoBehaviour
 
         dungeonLayout = new int[xBounds, zBounds];
 
-        Random.InitState(seed);
+        if (UseSeed)
+        {
+            Random.InitState(seed);
+        }
+        else
+        {
+            seed = Random.Range(0,max: int.MaxValue);
+            Random.InitState(seed);
+        }
+
+        if (AmoutOfSteps == 0)
+        {
+            AmoutOfSteps = int.MaxValue;
+        }
 
         x = Random.Range(0, xBounds);
         z = Random.Range(0, zBounds / 2);
@@ -64,13 +87,10 @@ public class DungeonGeneration : MonoBehaviour
 
     void Update()
     {
-        //generate piece of the dungeon every update
-        generateDungeon();
-
-        // if generation is done destroy self
-        if (!generatingLevel)
-        {
-            Destroy(gameObject);
+        if (generatingLevel)
+        {        
+            //generate piece of the dungeon every update
+            generateDungeon();
         }
     }
 
@@ -99,7 +119,7 @@ public class DungeonGeneration : MonoBehaviour
             case Directions.LEFT:
                 x--;
                 break;
-            case Directions.DOWN:
+            case Directions.BACK:
                 z--; ;
                 break;
             default:
@@ -116,27 +136,34 @@ public class DungeonGeneration : MonoBehaviour
 
     private Directions GetChanceBasedDirections()
     {
-        chance = Random.Range(1, 101);
-        //forward
-        if (chance >= 0 && chance <= ForwardChance)
+        if (counter < AmoutOfSteps)
         {
-            return Directions.FORWARD;
+            chance = Random.Range(1, 101);
+            //forward
+            if (chance >= 0 && chance <= ForwardChance)
+            {
+                return Directions.FORWARD;
+            }
+
+            //back
+            if (chance >= ForwardChance && chance <= ForwardChance + BackwardChance)
+            {
+                return Directions.BACK;
+            }
+
+            //right
+            if (chance >= ForwardChance + BackwardChance && chance <= ForwardChance + BackwardChance + RightChance)
+            {
+                return Directions.RIGHT;
+            }
+
+            //left
+            if (chance >= ForwardChance + BackwardChance + RightChance && chance <= 100)
+            {
+                return Directions.LEFT;
+            }
         }
-        //back
-        if (chance >= ForwardChance && chance <= ForwardChance + BackwardChance)
-        {
-            return Directions.DOWN;
-        }
-        //right
-        if (chance >= ForwardChance + BackwardChance && chance <= ForwardChance + BackwardChance + RightChance)
-        {
-            return Directions.RIGHT;
-        }
-        //left
-        if (chance >= ForwardChance + BackwardChance + RightChance && chance <= 100)
-        {
-            return Directions.LEFT;
-        }
+
         return Directions.BLOCKED;
     }
 
@@ -146,6 +173,7 @@ public class DungeonGeneration : MonoBehaviour
     {
         Directions dir = GetChanceBasedDirections();
         bool notBlocked = false;
+        
 
 
         // can forward
@@ -162,9 +190,9 @@ public class DungeonGeneration : MonoBehaviour
         // can back
         if (z - 1 > 0 && dungeonLayout[x, z - 1] == 0)
         {
-            if (dir == Directions.DOWN)
+            if (dir == Directions.BACK)
             {
-                return Directions.DOWN;
+                return Directions.BACK;
             }
             else if (BackwardChance > 0)
             {
@@ -195,7 +223,7 @@ public class DungeonGeneration : MonoBehaviour
             }
         }
 
-        if (notBlocked) {
+        if (notBlocked && dir != Directions.BLOCKED) {
             return getNextDirection();
         }
 
@@ -214,13 +242,6 @@ public class DungeonGeneration : MonoBehaviour
         nextDirection = getNextDirection();
 
         GameObject piece = null;
-
-
-        //if (placeDirection == Directions.BLOCKED)
-        //{
-        //    Destroy(lastPiece);
-        //    placeDirection = Directions.NONE;
-        //}
 
         // place end
         if (placeDirection == Directions.NONE || placeDirection == Directions.BLOCKED)
@@ -243,7 +264,7 @@ public class DungeonGeneration : MonoBehaviour
                 {
                     currentRotation = 0;
                 }
-                else if (nextDirection == Directions.DOWN)
+                else if (nextDirection == Directions.BACK)
                 {
                     currentRotation = 270;
                 }
@@ -279,7 +300,7 @@ public class DungeonGeneration : MonoBehaviour
                 {
                     currentRotation = 180;
                 }
-                else if (prevDirection == Directions.DOWN)
+                else if (prevDirection == Directions.BACK)
                 {
                     currentRotation = 90;
                 }
@@ -296,23 +317,23 @@ public class DungeonGeneration : MonoBehaviour
             piece.name = "corner";
 
             if (placeDirection == Directions.FORWARD && nextDirection == Directions.RIGHT ||
-                placeDirection == Directions.LEFT && nextDirection == Directions.DOWN)
+                placeDirection == Directions.LEFT && nextDirection == Directions.BACK)
             {
                 currentRotation = 90;
             }
             if (placeDirection == Directions.FORWARD && nextDirection == Directions.LEFT ||
-               placeDirection == Directions.RIGHT && nextDirection == Directions.DOWN)
+               placeDirection == Directions.RIGHT && nextDirection == Directions.BACK)
             {
                 currentRotation = 180;
             }
 
             if (placeDirection == Directions.RIGHT && nextDirection == Directions.FORWARD ||
-                placeDirection == Directions.DOWN && nextDirection == Directions.LEFT)
+                placeDirection == Directions.BACK && nextDirection == Directions.LEFT)
             {
                 currentRotation = 270;
             }
             if (placeDirection == Directions.LEFT && nextDirection == Directions.FORWARD ||
-                placeDirection == Directions.DOWN && nextDirection == Directions.RIGHT)
+                placeDirection == Directions.BACK && nextDirection == Directions.RIGHT)
             {
                 currentRotation = 0;
             }
@@ -342,7 +363,7 @@ public class DungeonGeneration : MonoBehaviour
         piece.transform.parent = parent.transform;
 
         lastPiece = piece;
-
+        counter++;
     }
 
     bool mustPlaceCorner(Directions placeDirection)
@@ -377,7 +398,7 @@ public class DungeonGeneration : MonoBehaviour
             nextPos.x--;
         }
         //down
-        if (nextDirection == Directions.DOWN)
+        if (nextDirection == Directions.BACK)
         {
             nextPos.z--;
         }
