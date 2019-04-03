@@ -109,7 +109,7 @@ public class DungeonGeneration : MonoBehaviour
 
     private Directions GetChanceBasedDirections()
     {
-        chance = Random.Range(0, 101);
+        chance = Random.Range(1, 101);
         //forward
         if (chance >= 0 && chance <= ForwardChance)
         {
