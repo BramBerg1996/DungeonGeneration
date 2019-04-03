@@ -9,6 +9,7 @@ public class DungeonGeneration : MonoBehaviour
     public int BackwardChance;
     public int LeftChance;
     public int RightChance;
+    public int seed;
 
     public GameObject CorridorPiece;
     public GameObject CornerPiece;
@@ -18,6 +19,7 @@ public class DungeonGeneration : MonoBehaviour
     private static int PIECE_SIZE = 10;
 
     private int[,] dungeonLayout;
+    private GameObject parent;
 
     private int x, z;
     private Directions nextDirection = Directions.NONE;
@@ -45,7 +47,12 @@ public class DungeonGeneration : MonoBehaviour
             Debug.LogError("Total chance not 100% " + (ForwardChance + BackwardChance + LeftChance + RightChance));//change to end game.
         }
 
+        parent = new GameObject();
+        parent.name = "Dungeon";
+
         dungeonLayout = new int[xBounds, zBounds];
+
+        Random.InitState(seed);
 
         x = Random.Range(0, xBounds);
         z = Random.Range(0, zBounds / 2);
@@ -287,7 +294,6 @@ public class DungeonGeneration : MonoBehaviour
         {
             piece = Instantiate(CornerPiece, new Vector3(x * PIECE_SIZE, 0, z * PIECE_SIZE), Quaternion.identity);
             piece.name = "corner";
-            print("CORNER- RANDNUM: "+ chance);
 
             if (placeDirection == Directions.FORWARD && nextDirection == Directions.RIGHT ||
                 placeDirection == Directions.LEFT && nextDirection == Directions.DOWN)
@@ -333,6 +339,7 @@ public class DungeonGeneration : MonoBehaviour
             Destroy(lastPiece);
             placeDirection = Directions.NONE;
         }
+        piece.transform.parent = parent.transform;
 
         lastPiece = piece;
 
