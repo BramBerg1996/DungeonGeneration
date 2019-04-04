@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.44657844, g: 0.49641222, b: 0.57481694, a: 1}
+  m_IndirectSpecularColor: {r: 0.44657826, g: 0.49641263, b: 0.57481676, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -144,16 +144,16 @@ MonoBehaviour:
   xBounds: 100
   zBounds: 100
   yBounds: 100
-  ForwardChance: 48
-  BackwardChance: 10
-  LeftChance: 20
-  RightChance: 20
-  UpChance: 1
-  DownChance: 1
+  ForwardChance: 17
+  BackwardChance: 17
+  LeftChance: 17
+  RightChance: 17
+  UpChance: 16
+  DownChance: 16
   UseSeed: 0
-  seed: 0
+  seed: 650695211
   setStepAmount: 1
-  AmoutOfSteps: 0
+  AmoutOfSteps: 100
   CorridorPiece: {fileID: 6012943875782894380, guid: 6e085910f29ace643b1e94562922b497,
     type: 3}
   CornerPiece: {fileID: 6012943875782894380, guid: 03d8154cca26e824ab200dc03e53fb3a,

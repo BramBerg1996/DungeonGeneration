@@ -96,7 +96,7 @@ public class DungeonGeneration : MonoBehaviour
 
         if (ForwardChance + BackwardChance + LeftChance + RightChance + UpChance + DownChance != 100)
         {
-            Debug.LogError("Total chance not 100% " + (ForwardChance + BackwardChance + LeftChance + RightChance));//change to end game.
+            Debug.LogError("Total chance not 100% " + (ForwardChance + BackwardChance + LeftChance + RightChance + UpChance + DownChance));//change to end game.
         }
 
         parent = new GameObject();
@@ -170,19 +170,18 @@ public class DungeonGeneration : MonoBehaviour
                 break;
         }
 
-        if (outOfBounds())
+        /*if (outOfBounds())
         {
             generatingLevel = false;
             print("--------OUT OF BOUNDS--------" + "X: " + x + "Z: " + z);
             nextDirection = Directions.NONE;
-        }
+        }*/
     }
 
     private Directions GetChanceBasedDirections()
     {
         if (!setStepAmount || counter < AmoutOfSteps)
         {
-            print("Count: "+ counter + " | Amount of: " + AmoutOfSteps+ " | SetAmount: "+!setStepAmount);
             chance = Random.Range(1, 101);
             //forward
             if (chance >= 0 && chance <= ForwardChance)
