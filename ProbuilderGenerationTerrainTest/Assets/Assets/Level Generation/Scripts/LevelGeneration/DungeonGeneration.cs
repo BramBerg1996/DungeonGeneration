@@ -94,9 +94,9 @@ public class DungeonGeneration : MonoBehaviour
             Debug.LogError("Bounds are not set properly");
         }
 
-        if (ForwardChance + BackwardChance + LeftChance + RightChance + UpChance + DownChance != 100)
+        if (ForwardChance + BackwardChance + LeftChance + RightChance != 100)
         {
-            Debug.LogError("Total chance not 100% " + (ForwardChance + BackwardChance + LeftChance + RightChance + UpChance + DownChance));//change to end game.
+            Debug.LogError("Total chance not 100% " + (ForwardChance + BackwardChance + LeftChance + RightChance));//change to end game.
         }
 
         parent = new GameObject();
@@ -160,12 +160,6 @@ public class DungeonGeneration : MonoBehaviour
             case Directions.BACK:
                 z--; ;
                 break;
-            case Directions.UP:
-                y++;
-                break;
-            case Directions.DOWN:
-                y--;
-                break;
             default:
                 break;
         }
@@ -202,21 +196,9 @@ public class DungeonGeneration : MonoBehaviour
             }
 
             //left
-            if (chance >= ForwardChance + BackwardChance + RightChance && chance <= ForwardChance + BackwardChance + RightChance + LeftChance)
+            if (chance >= ForwardChance + BackwardChance + RightChance && chance <= 100)
             {
                 return Directions.LEFT;
-            }
-
-            //up
-            if (chance >= ForwardChance + BackwardChance + RightChance + LeftChance && chance <= ForwardChance + BackwardChance + RightChance + LeftChance + UpChance)
-            {
-                return Directions.UP;
-            }
-
-            //down
-            if (chance >= ForwardChance + BackwardChance + RightChance + LeftChance + UpChance && chance <= ForwardChance + BackwardChance + RightChance + LeftChance + UpChance + DownChance)
-            {
-                return Directions.DOWN;
             }
         }
 
@@ -276,31 +258,6 @@ public class DungeonGeneration : MonoBehaviour
                 return Directions.LEFT;
             }
             else if (LeftChance > 0)
-            {
-                notBlocked = true;
-            }
-        }
-
-        // can up
-        if (x > 0 && dungeonLayout[x, z, y + 1] == 0 && lastPiece != null && lastPiece.name != "START" && lastPiece.name != "UP")
-        {
-            if (dir == Directions.UP)
-            {
-                return Directions.UP;
-            }
-            else if (UpChance > 0)
-            {
-                notBlocked = true;
-            }
-        }
-        //can down
-        if (x > 0 && dungeonLayout[x, z, y - 1] == 0 && lastPiece != null && lastPiece.name != "START" && lastPiece.name != "DOWN")
-        {
-            if (dir == Directions.DOWN)
-            {
-                return Directions.DOWN;
-            }
-            else if (DownChance > 0)
             {
                 notBlocked = true;
             }
@@ -433,66 +390,6 @@ public class DungeonGeneration : MonoBehaviour
                 currentRotation = 0;
             }
         }
-        else if (nextDirection == Directions.UP || nextDirection == Directions.DOWN)
-        {
-            if (nextDirection == Directions.UP)
-            {
-                piece = Instantiate(UpPiece, new Vector3(x * PIECE_SIZE, y * 5, z * PIECE_SIZE), Quaternion.identity);
-                piece.name = "UP";
-            }
-            else
-            {
-                piece = Instantiate(DownPiece, new Vector3(x * PIECE_SIZE, y * 5, z * PIECE_SIZE), Quaternion.identity);
-                piece.name = "DOWN";
-            }
-
-            if (placeDirection == Directions.RIGHT)
-            {
-                currentRotation = 0;
-            }
-            else if (placeDirection == Directions.LEFT)
-            {
-                currentRotation = 180;
-            }
-            else if (placeDirection == Directions.FORWARD)
-            {
-                currentRotation = 270;
-            }
-            else
-            {
-                currentRotation = 90;
-            }
-        }
-        else if (placeDirection == Directions.DOWN || placeDirection == Directions.UP)
-        {
-            if (placeDirection == Directions.DOWN)
-            {
-                piece = Instantiate(UpPiece, new Vector3(x * PIECE_SIZE, y * 5, z * PIECE_SIZE), Quaternion.identity);
-                piece.name = "UP";
-            }
-            else
-            {
-                piece = Instantiate(DownPiece, new Vector3(x * PIECE_SIZE, y * 5, z * PIECE_SIZE), Quaternion.identity);
-                piece.name = "DOWN";
-            }
-
-            if (nextDirection == Directions.BACK)
-            {
-                currentRotation = 270;
-            }
-            else if (nextDirection == Directions.RIGHT)
-            {
-                currentRotation = 180;
-            }
-            else if (nextDirection == Directions.FORWARD)
-            {
-                currentRotation = 90;
-            }
-            else
-            {
-                currentRotation = 0;
-            }
-        }
         else
         {
             piece = Instantiate(CorridorPiece, new Vector3(x * PIECE_SIZE, y * 5, z * PIECE_SIZE), Quaternion.identity);
@@ -557,16 +454,6 @@ public class DungeonGeneration : MonoBehaviour
         if (nextDirection == Directions.BACK)
         {
             nextPos.z--;
-        }
-        //down
-        if (nextDirection == Directions.UP)
-        {
-            nextPos.y--;
-        }
-        //up
-        if (nextDirection == Directions.UP)
-        {
-            nextPos.y++;
         }
 
         return nextPos;
