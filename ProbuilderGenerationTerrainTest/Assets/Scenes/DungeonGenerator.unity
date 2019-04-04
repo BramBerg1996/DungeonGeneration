@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.44657898, g: 0.4964133, b: 0.5748178, a: 1}
+  m_IndirectSpecularColor: {r: 0.44657826, g: 0.49641263, b: 0.57481676, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -143,16 +143,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   xBounds: 100
   zBounds: 100
-  ForwardChance: 50
-  BackwardChance: 10
-  LeftChance: 20
-  RightChance: 20
-  seed: 0
+  yBounds: 100
+  ForwardChance: 17
+  BackwardChance: 17
+  LeftChance: 17
+  RightChance: 17
+  UpChance: 16
+  DownChance: 16
+  UseSeed: 0
+  seed: 650695211
+  setStepAmount: 1
+  AmoutOfSteps: 100
   CorridorPiece: {fileID: 6012943875782894380, guid: 6e085910f29ace643b1e94562922b497,
     type: 3}
   CornerPiece: {fileID: 6012943875782894380, guid: 03d8154cca26e824ab200dc03e53fb3a,
     type: 3}
   StartEndPiece: {fileID: 6012943875782894380, guid: 7ee4f7438b007af458d822705677ad06,
+    type: 3}
+  UpPiece: {fileID: 6012943875782894380, guid: 77636863dfd56184596011059c5c2089, type: 3}
+  DownPiece: {fileID: 6012943875782894380, guid: e13d8383aca2aa24baed136177bd930b,
     type: 3}
   player: {fileID: 100000, guid: 5e9e851c0e142814dac026a256ba2ac0, type: 3}
 --- !u!4 &790396742
