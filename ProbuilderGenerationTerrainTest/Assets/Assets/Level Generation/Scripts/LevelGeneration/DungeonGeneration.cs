@@ -75,7 +75,7 @@ public class DungeonGeneration : MonoBehaviour
         startPlaced = false;
         counter = 0;
         currentRotation = 0;
-        Directions prevDirection = 0;
+        prevDirection = Directions.NONE;
         nextDirection = Directions.NONE;
         lastPos = Vector3.zero;
         generatingLevel = true;
@@ -132,14 +132,17 @@ public class DungeonGeneration : MonoBehaviour
         }
     }
 
+    //main function to generate the dungeon
     void generateDungeon()
     {
+        //Creating a new position to place the next chunk.
         generateNewPosition();
 
         // create part of dungeon
         createPart();
     }
 
+    //Updating the next position of the dungeon layout for chunk placement
     void generateNewPosition()
     {
         switch (nextDirection)
@@ -163,15 +166,9 @@ public class DungeonGeneration : MonoBehaviour
             default:
                 break;
         }
-
-        /*if (outOfBounds())
-        {
-            generatingLevel = false;
-            print("--------OUT OF BOUNDS--------" + "X: " + x + "Z: " + z);
-            nextDirection = Directions.NONE;
-        }*/
     }
 
+    //Generating a direction based on the chance fields controlled in the UI.
     private Directions GetChanceBasedDirections()
     {
         if (!setStepAmount || counter < AmoutOfSteps)
@@ -212,9 +209,7 @@ public class DungeonGeneration : MonoBehaviour
         Directions dir = GetChanceBasedDirections();
         bool notBlocked = false;
 
-
-
-        // can forward
+        // can go forward
         if (z < zBounds - 1 && dungeonLayout[x, z + 1, y] == 0)
         {
             if (dir == Directions.FORWARD)
@@ -226,7 +221,7 @@ public class DungeonGeneration : MonoBehaviour
                 notBlocked = true;
             }
         }
-        // can back
+        // can go back
         if (z - 1 > 0 && dungeonLayout[x, z - 1, y] == 0)
         {
             if (dir == Directions.BACK)
@@ -238,7 +233,7 @@ public class DungeonGeneration : MonoBehaviour
                 notBlocked = true;
             }
         }
-        // can right
+        // can go right
         if (x < xBounds - 1 && dungeonLayout[x + 1, z, y] == 0)
         {
             if (dir == Directions.RIGHT)
@@ -250,7 +245,7 @@ public class DungeonGeneration : MonoBehaviour
                 notBlocked = true;
             }
         }
-        // can left
+        // can go left
         if (x > 0 && dungeonLayout[x - 1, z, y] == 0)
         {
             if (dir == Directions.LEFT)
@@ -263,18 +258,13 @@ public class DungeonGeneration : MonoBehaviour
             }
         }
 
+        //Can build to a direction but the random given direction is not possible try generating an other direction
         if (notBlocked && dir != Directions.BLOCKED)
         {
             return getNextDirection();
         }
 
         return Directions.BLOCKED;
-    }
-
-    //if out of bounds of the dungeon generation area return true;
-    bool outOfBounds()
-    {
-        return x == xBounds - 1 || z == zBounds - 1 || y == yBounds || y < 0 || x < 0 || z < 0;
     }
 
     void createPart()
@@ -294,6 +284,7 @@ public class DungeonGeneration : MonoBehaviour
                 startPlaced = true;
                 piece.name = "START";
                 Component[] childs = piece.GetComponentsInChildren<Renderer>();
+                //change color to green for starting node
                 foreach (var child in childs)
                 {
                     child.GetComponent<Renderer>().material.color = Color.green;
@@ -314,6 +305,7 @@ public class DungeonGeneration : MonoBehaviour
                 {
                     currentRotation = 270;
                 }
+                //uncomment if you want to spawn the player
                 //spawnPlayer(piece.transform.position + new Vector3(0, 3, 0));
             }
             //spawning end
@@ -321,10 +313,13 @@ public class DungeonGeneration : MonoBehaviour
             {
                 piece.name = "END";
                 Component[] childs = piece.GetComponentsInChildren<Renderer>();
+                //adding color to end piece.
                 foreach (var child in childs)
                 {
                     child.GetComponent<Renderer>().material.color = Color.red;
                 }
+
+                //Rotation based on last piece
                 if (lastPiece.name == "CORNER")
                 {
                     if (lastPiece.transform.rotation.y >= 89 && lastPiece.transform.rotation.y <= 91)
@@ -344,6 +339,7 @@ public class DungeonGeneration : MonoBehaviour
                         currentRotation = 270;
                     }
                 }
+                //Rotation based on previous direction
                 else if (prevDirection == Directions.RIGHT)
                 {
                     currentRotation = 0;
@@ -363,6 +359,7 @@ public class DungeonGeneration : MonoBehaviour
             }
 
         }
+        // Place corner
         else if (mustPlaceCorner(placeDirection))
         {
             piece = Instantiate(CornerPiece, new Vector3(x * PIECE_SIZE, y * 5, z * PIECE_SIZE), Quaternion.identity);
@@ -390,6 +387,7 @@ public class DungeonGeneration : MonoBehaviour
                 currentRotation = 0;
             }
         }
+        // place piece
         else
         {
             piece = Instantiate(CorridorPiece, new Vector3(x * PIECE_SIZE, y * 5, z * PIECE_SIZE), Quaternion.identity);
@@ -403,22 +401,39 @@ public class DungeonGeneration : MonoBehaviour
                 currentRotation = 90;
             }
         }
+        //rotate spawned piece
         piece.transform.Rotate(0, currentRotation, 0);
+
+        //fil the dungeon position so there cannot be placed an other node.
         dungeonLayout[x, z, y] = 1;
-        lastPos = new Vector3(x, 0, z);
+
+        //hold the last position
+        lastPos = new Vector3(x, y, z);
+
+        //getting the last position
         prevDirection = placeDirection;
 
+        //When the walker cannot go a direction place end piece and delete previos piece
         if (placeDirection == Directions.BLOCKED)
         {
             Destroy(lastPiece);
             placeDirection = Directions.NONE;
         }
+        //add to parent
         piece.transform.parent = parent.transform;
+        
+        // keep track of all chunks to later delete for reload
         Dungeon.Add(piece);
+
+        //setting last piece
         lastPiece = piece;
+
+        //increase step counter.
         counter++;
     }
 
+
+    //Checks if a corners needs to be placed
     bool mustPlaceCorner(Directions placeDirection)
     {
 
@@ -431,6 +446,7 @@ public class DungeonGeneration : MonoBehaviour
         }
         return false;
     }
+    // look at next direction to calculate if it's possible
     Vector3 getNextPos()
     {
         Vector3 nextPos = new Vector3(x, y, z);
@@ -465,6 +481,11 @@ public class DungeonGeneration : MonoBehaviour
     }
 }
 
+/*
+ * 
+ * UI CLASS: to handle UI elements for all parameters
+ * 
+ * */
 [CustomEditor(typeof(DungeonGeneration))]
 public class DungeonGenerationEditor : Editor
 {
